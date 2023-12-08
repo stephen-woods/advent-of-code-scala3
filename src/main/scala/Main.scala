@@ -1,11 +1,12 @@
 
-import year2015.Day01
+import year2021.Day01
 import zio.*
 import zio.prelude.*
 import scala.util.Try
 
 object Main extends ZIOAppDefault {
-  def run = {
+  
+  override def run = {
     val effect = for {
       args <- getArgs
          _ <- validateArgs(args, runDay)
@@ -14,7 +15,7 @@ object Main extends ZIOAppDefault {
     }
 
     effect.catchAll{ th => 
-     Console.printError(th.getMessage())
+      Console.printError(th.getMessage())
     }
   }
 
@@ -49,7 +50,7 @@ object Main extends ZIOAppDefault {
     for {
       _ <- Console.printLine(s"Advent of code $year in Scala 3!")
       _ <- (year, day) match {
-        case (2021, 1) => year2015.Day01.run()
+        case (2021, 1) => year2021.Day01.run()
         case _ => Console.printLineError(s"--- Day $day $year: Not Implemented!")  
       }
     } yield ()
