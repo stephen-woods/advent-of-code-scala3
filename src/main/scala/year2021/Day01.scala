@@ -116,32 +116,34 @@ object Day01 {
 
 
   def partA(): UIO[Int] = {
-    Source.fromString(INPUT)
-      .getLines()
-      .map(_.toInt)
-      .toList
-      .sliding(2)
-      .toList
-      .foldLeft(0) {
-        case (acc, p :: c :: Nil) => if (p < c) acc + 1 else acc
-        case (acc, _) => acc
-      }
-    ZIO.succeed(3)
+    ZIO.succeed{
+      Source.fromString(INPUT)
+        .getLines()
+        .map(_.toInt)
+        .toList
+        .sliding(2)
+        .toList
+        .foldLeft(0) {
+          case (acc, p :: c :: Nil) => if (p < c) acc + 1 else acc
+          case (acc, _) => acc
+        }
+    }
   }
 
 
   def partB(): UIO[Int] = {
-    Source.fromString(INPUT)
-      .getLines()
-      .map(_.toInt)
-      .toList
-      .sliding(3).toList
-      .sliding(2).toList
-      .foldLeft(0) {
-        case (acc, p :: c :: Nil) => if (p.sum < c.sum) acc + 1 else acc
-        case (acc, _) => acc
-      }
-    ZIO.succeed(3)
+    ZIO.succeed{
+      Source.fromString(INPUT)
+        .getLines()
+        .map(_.toInt)
+        .toList
+        .sliding(3).toList
+        .sliding(2).toList
+        .foldLeft(0) {
+          case (acc, p :: c :: Nil) => if (p.sum < c.sum) acc + 1 else acc
+          case (acc, _) => acc
+        }
+    }
   }
 
   val _INPUT_SAMPLE: String =
