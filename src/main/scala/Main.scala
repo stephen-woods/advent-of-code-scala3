@@ -50,6 +50,7 @@ object Main extends ZIOAppDefault {
       _ <- Console.printLine(s"Advent of code $year in Scala 3!")
       _ <- (year, day) match {
              case (2021, 1) => year2021.Day01.run()
+             case (2021, 2) => year2021.Day02.run()
              case _         =>
                Console.printLineError(s"--- Day $day $year: Not Implemented!")
            }
