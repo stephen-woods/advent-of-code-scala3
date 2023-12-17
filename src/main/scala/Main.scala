@@ -1,4 +1,3 @@
-import year2021.Day01
 import zio.*
 import zio.prelude.*
 import scala.util.Try
@@ -51,6 +50,7 @@ object Main extends ZIOAppDefault {
       _ <- (year, day) match {
              case (2021, 1) => year2021.Day01.run()
              case (2021, 2) => year2021.Day02.run()
+             case (2023, 1) => year2023.Day01.run()
              case _         =>
                Console.printLineError(s"--- Day $day $year: Not Implemented!")
            }
