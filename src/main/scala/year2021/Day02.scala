@@ -109,7 +109,7 @@ object Day02 {
         .map { line =>
           line.split("\\s").toList match {
             case c :: u :: Nil => (c, u.toInt)
-            case _ => ???
+            case _             => ???
           }
         }
         .toList
@@ -119,7 +119,7 @@ object Day02 {
           case ((p, d), ("forward", x)) => (p + x, d)
           case ((p, d), ("down", x))    => (p, d + x)
           case ((p, d), ("up", x))      => (p, d - x)
-          case _ => ???
+          case _                        => ???
         }
       pos * depth
 
@@ -134,7 +134,7 @@ object Day02 {
         .map { line =>
           line.split("\\s").toList match {
             case c :: u :: Nil => (c, u.toInt)
-            case _ => ???
+            case _             => ???
           }
         }
         .toList
@@ -144,7 +144,7 @@ object Day02 {
           case ((p, d, a), ("forward", x)) => (p + x, d + a * x, a)
           case ((p, d, a), ("down", x))    => (p, d, a + x)
           case ((p, d, a), ("up", x))      => (p, d, a - x)
-          case _ => ???
+          case _                           => ???
         }
       pos * depth
 
