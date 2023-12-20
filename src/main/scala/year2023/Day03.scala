@@ -52,6 +52,51 @@ import scala.collection.mutable
   *
   * Of course, the actual engine schematic is much larger. What is the sum of
   * all of the part numbers in the engine schematic?
+  *
+  * --- Part Two ---
+  *
+  * The engineer finds the missing part and installs it in the engine! As the
+  * engine springs to life, you jump in the closest gondola, finally ready to
+  * ascend to the water source.
+  *
+  * You don't seem to be going very fast, though. Maybe something is still
+  * wrong? Fortunately, the gondola has a phone labeled "help", so you pick it
+  * up and the engineer answers.
+  *
+  * Before you can explain the situation, she suggests that you look out the
+  * window. There stands the engineer, holding a phone in one hand and waving
+  * with the other. You're going so slowly that you haven't even left the
+  * station. You exit the gondola.
+  *
+  * The missing part wasn't the only issue - one of the gears in the engine is
+  * wrong. A gear is any * symbol that is adjacent to exactly two part numbers.
+  * Its gear ratio is the result of multiplying those two numbers together.
+  *
+  * This time, you need to find the gear ratio of every gear and add them all up
+  * so that the engineer can figure out which gear needs to be replaced.
+  *
+  * Consider the same engine schematic again:
+  *
+  * {{{
+  * 467..114..
+  * ...*......
+  * ..35..633.
+  * ......#...
+  * 617*......
+  * .....+.58.
+  * ..592.....
+  * ......755.
+  * ...$.*....
+  * .664.598..
+  * }}}
+  *
+  * In this schematic, there are two gears. The first is in the top left; it has
+  * part numbers 467 and 35, so its gear ratio is 16345. The second gear is in
+  * the lower right; its gear ratio is 451490. (The * adjacent to 617 is not a
+  * gear because it is only adjacent to one part number.) Adding up all of the
+  * gear ratios produces 467835.
+  *
+  * What is the sum of all of the gear ratios in your engine schematic?
   */
 
 object Day03 {
@@ -68,14 +113,14 @@ object Day03 {
       b <- partB().timed
       _ <-
         Console.printLine(
-          "What is the sum of the power of these sets?"
+          "What is the sum of all of the gear ratios in your engine schematic?"
         )
       _ <- Console.printLine(s"${b._2} in ${b._1.render}")
     } yield ()
   }
 
   def partA(): UIO[Int] = ZIO.succeed {
-    val grid = CharGrid.from(SAMPLE_A)
+    val grid = CharGrid.from(INPUT_A)
 
     grid
       .gridValues()
@@ -84,8 +129,21 @@ object Day03 {
       .sum
   }
 
-  def partB(): UIO[Int] = {
-    ZIO.succeed(3)
+  def partB(): UIO[Int] = ZIO.succeed {
+    val grid = CharGrid.from(_INPUT_SAMPLE_A)
+
+    val gvs = grid.gridValues()
+    grid
+      .symbols()
+      .map{ sym =>
+        sym.adjacentGridValues(grid, gvs) match {
+          case a :: b :: Nil => 
+            println(s"sym ${sym.x} ${sym.y}   ${a.value} ${b.value}")
+            a.value * b.value
+          case _ => 0
+        }
+      }
+      .sum
   }
 
   class CharGrid(val data: Array[Array[Char]]) {
@@ -138,6 +196,20 @@ object Day03 {
               in = false
               val v = value(y, start, x)
               ret = GridValue(v, y, start, x) :: ret
+          }
+        }
+      }
+      ret
+    }
+
+    def symbols(): List[Symbol] = {
+      var ret: List[Symbol] = Nil
+      (0 to maxY).foreach { y =>
+        (0 to maxX).foreach { x =>
+          val c = get(x, y)
+          if (!c.isDigit && c != '.') {
+            println(s"Symbol $c $x $y")
+            ret = Symbol(c, x, y) :: ret
           }
         }
       }
@@ -201,6 +273,25 @@ object Day03 {
     }
   }
 
+  case class Symbol(char: Char, x: Int, y: Int) {
+    def adjacentGridValues(g: CharGrid, gvs: List[GridValue]): List[GridValue] = {
+
+      // FIXME This doesn't work correctly
+      def nextTo(gv: GridValue, offset: Int): Boolean = {
+        (y, offset) match {
+          case (0, -1) => false
+          case (g.maxY, 1) => false 
+          case _ => gv.y == y + offset && gv.start - 1 <= x && gv.end + 1 >= x 
+        }
+      }
+
+      val top = gvs.filter(nextTo(_, -1))
+      val middle = gvs.filter(nextTo(_, 0))
+      val bottom = gvs.filter(nextTo(_, 0))
+      (top ::: middle ::: bottom).distinct
+    }
+  }
+
   val _INPUT_SAMPLE_A = """467..114..
                           |...*......
                           |..35..633.
@@ -212,7 +303,7 @@ object Day03 {
                           |...$.*....
                           |.664.598..""".stripMargin
 
-  val SAMPLE_A = """.......12.......935............184.720...243........589.652..........435..........483.............6...........................904...........
+  val INPUT_A = """.......12.......935............184.720...243........589.652..........435..........483.............6...........................904...........
                    |......*.....968*.....$............*........=..348...*..........986....*...................459....*........422................#......%482....
                    |....291............612....290..........903........699......218*.......376............890....*.838...81......*.....138.../194................
                    |..............156......$..*...891.&731....%..89...................523..........699....+...227......*.......225....=...........388....*......
