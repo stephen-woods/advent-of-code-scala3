@@ -53,6 +53,8 @@ import scala.collection.mutable
   * Of course, the actual engine schematic is much larger. What is the sum of
   * all of the part numbers in the engine schematic?
   *
+  * Your puzzle answer was 540025.
+  *
   * --- Part Two ---
   *
   * The engineer finds the missing part and installs it in the engine! As the
@@ -76,6 +78,8 @@ import scala.collection.mutable
   * so that the engineer can figure out which gear needs to be replaced.
   *
   * Consider the same engine schematic again:
+  *
+  * Your puzzle answer was 84584891.
   *
   * {{{
   * 467..114..
@@ -130,17 +134,15 @@ object Day03 {
   }
 
   def partB(): UIO[Int] = ZIO.succeed {
-    val grid = CharGrid.from(_INPUT_SAMPLE_A)
+    val grid = CharGrid.from(INPUT_A)
 
     val gvs = grid.gridValues()
     grid
       .symbols()
-      .map{ sym =>
+      .map { sym =>
         sym.adjacentGridValues(grid, gvs) match {
-          case a :: b :: Nil => 
-            println(s"sym ${sym.x} ${sym.y}   ${a.value} ${b.value}")
-            a.value * b.value
-          case _ => 0
+          case a :: b :: Nil => a.value * b.value
+          case _             => 0
         }
       }
       .sum
@@ -156,12 +158,14 @@ object Day03 {
     }
 
     def value(y: Int, start: Int, end: Int): Int = {
-      val sb     = mutable.StringBuilder()
-      val ss     = data(y)
+      val sb = mutable.StringBuilder()
+      val ss = data(y)
+
       (start to end).foreach { x =>
         val c = get(x, y)
         sb += (c)
       }
+
       val result = sb.result
       result.toInt
     }
@@ -170,6 +174,7 @@ object Day03 {
       var ret: List[GridValue] = Nil
       var in                   = false
       var start                = 0
+
       (0 to maxY).foreach { y =>
         (0 to maxX).foreach { x =>
           val c = get(x, y)
@@ -204,11 +209,11 @@ object Day03 {
 
     def symbols(): List[Symbol] = {
       var ret: List[Symbol] = Nil
+      
       (0 to maxY).foreach { y =>
         (0 to maxX).foreach { x =>
           val c = get(x, y)
           if (!c.isDigit && c != '.') {
-            println(s"Symbol $c $x $y")
             ret = Symbol(c, x, y) :: ret
           }
         }
@@ -274,21 +279,23 @@ object Day03 {
   }
 
   case class Symbol(char: Char, x: Int, y: Int) {
-    def adjacentGridValues(g: CharGrid, gvs: List[GridValue]): List[GridValue] = {
+    def adjacentGridValues(
+        g: CharGrid,
+        gvs: List[GridValue]
+    ): List[GridValue] = {
 
-      // FIXME This doesn't work correctly
       def nextTo(gv: GridValue, offset: Int): Boolean = {
         (y, offset) match {
-          case (0, -1) => false
-          case (g.maxY, 1) => false 
-          case _ => gv.y == y + offset && gv.start - 1 <= x && gv.end + 1 >= x 
+          case (0, -1)     => false
+          case (g.maxY, 1) => false
+          case _           => gv.y == y + offset && gv.start - 1 <= x && gv.end + 1 >= x
         }
       }
 
-      val top = gvs.filter(nextTo(_, -1))
+      val top    = gvs.filter(nextTo(_, -1))
       val middle = gvs.filter(nextTo(_, 0))
-      val bottom = gvs.filter(nextTo(_, 0))
-      (top ::: middle ::: bottom).distinct
+      val bottom = gvs.filter(nextTo(_, 1))
+      (top ::: middle ::: bottom)
     }
   }
 
