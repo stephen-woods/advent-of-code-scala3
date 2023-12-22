@@ -69,11 +69,13 @@ import scala.collection.mutable
   *
   * Take a seat in the large pile of colorful cards. How many points are they
   * worth in total?
+  *
+  * Your puzzle answer was 24733.
   */
 
 object Day04 {
 
-  def run(): ZIO[Any, IOException, Unit] = {
+  def run(): Task[Unit] = {
     for {
       _ <- Console.printLine("--- Day 4: Scratchcards ---")
       _ <-
@@ -91,14 +93,56 @@ object Day04 {
     } yield ()
   }
 
-  def partA(): UIO[Int] = ZIO.succeed{
+  def partA(): Task[Int] = {
+    for {
+      lines <- ZIO.succeed(
+                 Source
+                   .fromString(INPUT_A)
+                   .getLines()
+                   .toList
+               )
+
+      cards <- ZIO.foreach(lines)(Card.from)
+
+    } yield {
+      cards.map(_.points()).sum
+    }
+
+  }
+
+  def partB(): UIO[Int] = ZIO.succeed {
     3
   }
 
-  def partB(): UIO[Int] = ZIO.succeed{
-    3
+  case class Card(id: Int, winning: Set[Int], game: Set[Int]) {
+    def points(): Int = {
+      winning.intersect(game).size match {
+        case 0 => 0
+        case 1 => 1
+        case m => Math.pow(2, m - 1).toInt
+      }
+    }
   }
 
+  object Card {
+    val Regex = """^Card\s+(\d+):([\d\s]+)\|([\d\s]+)$""".r
+
+    def from(s: String): Task[Card] = {
+      s match {
+        case Regex(id, w, g) =>
+          ZIO.succeed(
+            Card(
+              id = id.toInt,
+              winning = w.split(" ").filter(_.nonEmpty).map(_.toInt).toSet,
+              game = g.split(" ").filter(_.nonEmpty).map(_.toInt).toSet
+            )
+          )
+
+        case _ =>
+          ZIO.fail(new IllegalStateException(s"Unable to parse line: $s"))
+      }
+    }
+  }
 
   val _SAMPLE_INPUT_A = """Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
                           |Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
