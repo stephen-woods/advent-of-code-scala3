@@ -54,6 +54,7 @@ object Main extends ZIOAppDefault {
              case (2023, 2) => year2023.Day02.run()
              case (2023, 3) => year2023.Day03.run()
              case (2023, 4) => year2023.Day04.run()
+             case (2023, 5) => year2023.Day05.run()
              case _         =>
                Console.printLineError(s"--- Day $day $year: Not Implemented!")
            }
