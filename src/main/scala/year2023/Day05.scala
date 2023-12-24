@@ -198,6 +198,7 @@ object Day05 {
       println(maps.mkString("\n"))
       3
     }
+
   }
 
   def partB(): Task[Int] = {
@@ -208,17 +209,40 @@ object Day05 {
     val zero: List[List[String]] = Nil
     lines
       .foldLeft(zero) {
-        case (Nil, x) =>
-          (x :: Nil) :: Nil
-
-        case (acc, x) if x.isBlank =>
-          Nil :: acc
-
-        case (head :: tail, x) =>
-          (x :: head) :: tail
+        case (Nil, x)              => (x :: Nil) :: Nil
+        case (acc, x) if x.isBlank => Nil :: acc
+        case (head :: tail, x)     => (x :: head) :: tail
       }
       .map(_.reverse)
       .reverse
+  }
+
+  case class Almanac(seeds: Seeds, mapsByInput: Map[String, SeedMap])
+
+  object Almanac {
+    def from(lines: List[String]): Task[Almanac] = {
+
+      for {
+        maplines <- splitBlank(lines)
+        seeds    <- Seeds.from(maplines.head)
+        maps     <- ZIO.foreach(maplines.tail)(SeedMap.from)
+      } yield {
+        val mapsByInput = maps.map(m => (m.from, m)).toMap
+        Almanac(seeds, mapsByInput)
+      }
+    }
+
+    def splitBlank(lines: List[String]): UIO[List[List[String]]] = ZIO.succeed {
+      val zero: List[List[String]] = Nil
+      lines
+        .foldLeft(zero) {
+          case (Nil, x)              => (x :: Nil) :: Nil
+          case (acc, x) if x.isBlank => Nil :: acc
+          case (head :: tail, x)     => (x :: head) :: tail
+        }
+        .map(_.reverse)
+        .reverse
+    }
   }
 
   case class Seeds(underlying: List[Int])
@@ -253,7 +277,7 @@ object Day05 {
   case class SeedMap(from: String, to: String, underlying: Map[Int, Int])
 
   object SeedMap {
-    val MapRegex = """^(\w+)-to-(\w+) map:$""".r
+    val MapRegex      = """^(\w+)-to-(\w+) map:$""".r
     val MapInputRegex = """^(\d+) (\d+) (\d+)$""".r
 
     def from(lines: List[String]): Task[SeedMap] = {
@@ -262,25 +286,31 @@ object Day05 {
           ZIO.fail(new IllegalStateException("Unable to parse map: Empty"))
 
         case MapRegex(from, to) :: tail =>
-          val zero = Map.empty[Int, Int]
-          ZIO.foldLeft(tail)(zero){ 
-            case (acc, MapInputRegex(sink, source, num)) => 
-              // FIXME make map
-             ZIO.succeed(acc) 
+          val zero = Map.newBuilder[Int, Int]
+          ZIO
+            .foldLeft(tail)(zero) {
+              case (acc, MapInputRegex(si, so, hm)) =>
+                val source  = so.toInt
+                val sink    = si.toInt
+                val howMany = hm.toInt
+                val diff    = sink - source
+                (source to (source + howMany)).foreach { i =>
+                  acc.addOne((i, i + diff))
+                }
+                ZIO.succeed(acc)
 
-
-            case (acc, line) => 
-              ZIO.fail(new IllegalStateException(s"Unable to parse map input: $line"))
-          }
-
-          // FIXME Need to parse ids
-
-          ZIO.succeed(SeedMap(from, to, Map.empty))
+              case (acc, line) =>
+                ZIO.fail(
+                  new IllegalStateException(s"Unable to parse map input: $line")
+                )
+            }
+            .map { mb =>
+              SeedMap(from, to, mb.result)
+            }
 
         case head :: tail =>
           ZIO.fail(new IllegalStateException(s"Unable to parse map: $head"))
       }
-
     }
   }
 
