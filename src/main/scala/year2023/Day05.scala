@@ -4,6 +4,7 @@ import zio.*
 import java.io.IOException
 import scala.io.Source
 import scala.collection.mutable
+import scala.annotation.tailrec
 
 /** --- Day 5: If You Give A Seed A Fertilizer ---
   *
@@ -180,48 +181,67 @@ object Day05 {
     } yield ()
   }
 
-  def partA(): Task[Int] = {
-
+  def partA(): Task[Long] = {
     for {
-      lines    <- ZIO.succeed(
-                    Source
-                      .fromString(_SAMPLE_INPUT_A)
-                      .getLines()
-                      .toList
-                  )
-      maplines <- splitBlank(lines)
-
-      seeds <- Seeds.from(maplines.head)
-
-      maps <- ZIO.foreach(maplines.tail)(SeedMap.from)
+      lines     <- ZIO.succeed(
+                     Source
+                       .fromString(INPUT_A)
+                       .getLines()
+                       .toList
+                   )
+      almanac   <- Almanac.from(lines)
+      locations <- ZIO.foreach(almanac.seeds.underlying) { seed =>
+                     almanac.calc("seed", "location", seed)
+                   }
     } yield {
-      println(maps.mkString("\n"))
-      3
+      locations.min
     }
-
   }
 
-  def partB(): Task[Int] = {
+  def partB(): Task[Long] = {
     ZIO.succeed(3)
   }
 
-  def splitBlank(lines: List[String]): UIO[List[List[String]]] = ZIO.succeed {
-    val zero: List[List[String]] = Nil
-    lines
-      .foldLeft(zero) {
-        case (Nil, x)              => (x :: Nil) :: Nil
-        case (acc, x) if x.isBlank => Nil :: acc
-        case (head :: tail, x)     => (x :: head) :: tail
-      }
-      .map(_.reverse)
-      .reverse
-  }
+  case class Almanac(seeds: Seeds, mapsByInput: Map[String, SeedMap]) {
+    def calc(from: String, to: String, v: Long): Task[Long] = {
 
-  case class Almanac(seeds: Seeds, mapsByInput: Map[String, SeedMap])
+      @tailrec
+      def rec(seedMap: SeedMap, v: Long): Task[Long] = {
+        val v2 = seedMap.underlying.getOrElse(v, v)
+
+        if (seedMap.to == to) {
+          ZIO.succeed(v2)
+        } else {
+          mapsByInput.get(seedMap.to) match {
+            case None =>
+              ZIO.fail(
+                new IllegalStateException(
+                  s"Could not find needed map in almanac: ${seedMap.to}"
+                )
+              )
+
+            case Some(seedMap) =>
+              rec(seedMap, v2)
+          }
+        }
+      }
+
+      mapsByInput.get(from) match {
+        case None =>
+          ZIO.fail(
+            new IllegalStateException(
+              s"Could not find needed map in almanac: $from"
+            )
+          )
+
+        case Some(seedMap) =>
+          rec(seedMap, v)
+      }
+    }
+  }
 
   object Almanac {
     def from(lines: List[String]): Task[Almanac] = {
-
       for {
         maplines <- splitBlank(lines)
         seeds    <- Seeds.from(maplines.head)
@@ -232,20 +252,21 @@ object Day05 {
       }
     }
 
-    def splitBlank(lines: List[String]): UIO[List[List[String]]] = ZIO.succeed {
-      val zero: List[List[String]] = Nil
-      lines
-        .foldLeft(zero) {
-          case (Nil, x)              => (x :: Nil) :: Nil
-          case (acc, x) if x.isBlank => Nil :: acc
-          case (head :: tail, x)     => (x :: head) :: tail
-        }
-        .map(_.reverse)
-        .reverse
-    }
+    private def splitBlank(lines: List[String]): UIO[List[List[String]]] =
+      ZIO.succeed {
+        val zero: List[List[String]] = Nil
+        lines
+          .foldLeft(zero) {
+            case (Nil, x)              => (x :: Nil) :: Nil
+            case (acc, x) if x.isBlank => Nil :: acc
+            case (head :: tail, x)     => (x :: head) :: tail
+          }
+          .map(_.reverse)
+          .reverse
+      }
   }
 
-  case class Seeds(underlying: List[Int])
+  case class Seeds(underlying: List[Long])
 
   object Seeds {
     val SeedsRegex = """^seeds:([\d\s]+)$""".r
@@ -256,7 +277,7 @@ object Day05 {
           ZIO.fail(new IllegalStateException("Unable to parse seeds: Empty"))
 
         case SeedsRegex(x) :: Nil =>
-          val seeds = x.split(" ").filter(!_.isBlank).map(_.toInt).toList
+          val seeds = x.split(" ").filter(!_.isBlank).map(_.toLong).toList
           ZIO.succeed(
             Seeds(seeds)
           )
@@ -274,7 +295,7 @@ object Day05 {
     }
   }
 
-  case class SeedMap(from: String, to: String, underlying: Map[Int, Int])
+  case class SeedMap(from: String, to: String, underlying: Map[Long, Long])
 
   object SeedMap {
     val MapRegex      = """^(\w+)-to-(\w+) map:$""".r
@@ -286,12 +307,12 @@ object Day05 {
           ZIO.fail(new IllegalStateException("Unable to parse map: Empty"))
 
         case MapRegex(from, to) :: tail =>
-          val zero = Map.newBuilder[Int, Int]
+          val zero = Map.newBuilder[Long, Long]
           ZIO
             .foldLeft(tail)(zero) {
               case (acc, MapInputRegex(si, so, hm)) =>
-                val source  = so.toInt
-                val sink    = si.toInt
+                val source  = so.toLong
+                val sink    = si.toLong
                 val howMany = hm.toInt
                 val diff    = sink - source
                 (source to (source + howMany)).foreach { i =>
