@@ -207,7 +207,7 @@ object Day05 {
 
       @tailrec
       def rec(seedMap: SeedMap, v: Long): Task[Long] = {
-        val v2 = seedMap.underlying.getOrElse(v, v)
+        val v2 = seedMap.get(v)
 
         if (seedMap.to == to) {
           ZIO.succeed(v2)
@@ -295,9 +295,25 @@ object Day05 {
     }
   }
 
-  case class SeedMap(from: String, to: String, underlying: Map[Long, Long])
+  case class SeedMap(from: String, to: String, rules: List[SeedMap.MapRule]) {
+    def get(v: Long): Long = {
+      @tailrec
+      def rec(rs: List[SeedMap.MapRule]): Long = {
+        rs match
+          case Nil => v
+          case head :: tail => 
+            if (v >= head.start && v <= head.end) 
+              v + head.diff
+            else 
+              rec(tail)
+      } 
+      rec(rules) 
+    }
+  }
 
   object SeedMap {
+    case class MapRule(start: Long, end: Long, diff: Long)
+
     val MapRegex      = """^(\w+)-to-(\w+) map:$""".r
     val MapInputRegex = """^(\d+) (\d+) (\d+)$""".r
 
@@ -307,27 +323,22 @@ object Day05 {
           ZIO.fail(new IllegalStateException("Unable to parse map: Empty"))
 
         case MapRegex(from, to) :: tail =>
-          val zero = Map.newBuilder[Long, Long]
+          val zero: List[MapRule] = Nil
           ZIO
             .foldLeft(tail)(zero) {
-              case (acc, MapInputRegex(si, so, hm)) =>
-                val source  = so.toLong
-                val sink    = si.toLong
-                val howMany = hm.toInt
-                val diff    = sink - source
-                (source to (source + howMany)).foreach { i =>
-                  acc.addOne((i, i + diff))
-                }
-                ZIO.succeed(acc)
+              case (acc, MapInputRegex(sink, source, hm)) =>
+                val start = source.toLong
+                val end   = start + hm.toInt
+                val diff  = sink.toLong - start
+
+                ZIO.succeed(MapRule(start, end, diff) :: acc)
 
               case (acc, line) =>
                 ZIO.fail(
                   new IllegalStateException(s"Unable to parse map input: $line")
                 )
             }
-            .map { mb =>
-              SeedMap(from, to, mb.result)
-            }
+            .map { mrs => SeedMap(from, to, mrs) }
 
         case head :: tail =>
           ZIO.fail(new IllegalStateException(s"Unable to parse map: $head"))
