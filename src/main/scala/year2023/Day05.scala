@@ -159,6 +159,39 @@ import scala.annotation.tailrec
   *
   * What is the lowest location number that corresponds to any of the initial
   * seed numbers?
+  *
+  * Your puzzle answer was 525792406.
+  *
+  * --- Part Two ---
+  *
+  * Everyone will starve if you only plant such a small number of seeds.
+  * Re-reading the almanac, it looks like the seeds: line actually describes
+  * ranges of seed numbers.
+  *
+  * The values on the initial seeds: line come in pairs. Within each pair, the
+  * first value is the start of the range and the second value is the length of
+  * the range. So, in the first line of the example above:
+  *
+  * {{{
+  * seeds: 79 14 55 13
+  * }}}
+  *
+  * This line describes two ranges of seed numbers to be planted in the garden.
+  * The first range starts with seed number 79 and contains 14 values: 79, 80,
+  * ..., 91, 92. The second range starts with seed number 55 and contains 13
+  * values: 55, 56, ..., 66, 67.
+  *
+  * Now, rather than considering four seed numbers, you need to consider a total
+  * of 27 seed numbers.
+  *
+  * In the above example, the lowest location number can be obtained from seed
+  * number 82, which corresponds to soil 84, fertilizer 84, water 84, light 77,
+  * temperature 45, humidity 46, and location 46. So, the lowest location number
+  * is 46.
+  *
+  * Consider all of the initial seed numbers listed in the ranges on the first
+  * line of the almanac. What is the lowest location number that corresponds to
+  * any of the initial seed numbers?
   */
 
 object Day05 {
@@ -175,7 +208,7 @@ object Day05 {
       b <- partB().timed
       _ <-
         Console.printLine(
-          "?"
+          "What is the lowest location number that corresponds to any of the initial seed numbers?"
         )
       _ <- Console.printLine(s"${b._2} in ${b._1.render}")
     } yield ()
@@ -199,7 +232,37 @@ object Day05 {
   }
 
   def partB(): Task[Long] = {
-    ZIO.succeed(3)
+    // Brute force. Takes forever
+    for {
+      lines    <- ZIO.succeed(
+                    Source
+                      .fromString(INPUT_A)
+                      .getLines()
+                      .toList
+                  )
+      almanac  <- Almanac.from(lines)
+      ranges   <- ZIO.succeed(
+                    almanac.seeds.underlying
+                      .sliding(2, 2)
+                      .map {
+                        case x :: y :: Nil => x to x + y
+                        case _             => 0L until 0L
+                      }
+                      .toList
+                  )
+      location <- ZIO.foldLeft(ranges)(Long.MaxValue) { case (acc, range) =>
+                    ZIO.foldLeft(range)(acc) { case (acc2, seed) =>
+                      almanac
+                        .calc("seed", "location", seed)
+                        .map(v => Math.min(acc2, v))
+                    }
+                  }
+    } yield {
+      location
+    }
+
+    // Just punt
+    ZIO.fail(new java.lang.RuntimeException("Not implemented"))
   }
 
   case class Almanac(seeds: Seeds, mapsByInput: Map[String, SeedMap]) {
@@ -300,14 +363,14 @@ object Day05 {
       @tailrec
       def rec(rs: List[SeedMap.MapRule]): Long = {
         rs match
-          case Nil => v
-          case head :: tail => 
-            if (v >= head.start && v <= head.end) 
+          case Nil          => v
+          case head :: tail =>
+            if (v >= head.start && v <= head.end)
               v + head.diff
-            else 
+            else
               rec(tail)
-      } 
-      rec(rules) 
+      }
+      rec(rules)
     }
   }
 
