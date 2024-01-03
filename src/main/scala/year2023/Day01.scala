@@ -99,12 +99,12 @@ object Day01 {
     Source
       .fromString(_INPUT_A)
       .getLines()
-      .foldLeft(0) { case (acc, line) =>
-        val left  = line.iterator.find(_.isDigit).get.asDigit
-        val right = line.reverse.iterator.find(_.isDigit).get.asDigit
-        val sum   = (left * 10) + right
-        acc + sum
+      .map{ line =>
+        val left = line.find(_.isDigit).get.asDigit
+        val right = line.findLast(_.isDigit).get.asDigit
+        (left * 10) + right
       }
+      .sum
   }
 
   def partB(): UIO[Int] = ZIO.succeed {

@@ -244,10 +244,7 @@ object Day05 {
       ranges   <- ZIO.succeed(
                     almanac.seeds.underlying
                       .sliding(2, 2)
-                      .map {
-                        case x :: y :: Nil => x to x + y
-                        case _             => 0L until 0L
-                      }
+                      .map(xy => xy.head to xy.last)
                       .toList
                   )
       location <- ZIO.foldLeft(ranges)(Long.MaxValue) { case (acc, range) =>
